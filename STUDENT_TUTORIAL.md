@@ -189,9 +189,21 @@ if isinstance(frame, dict):
     print(frame.keys())
 ```
 
-### 3c. A note of honesty for the class
+### 3c. What the LIDAR payload actually contains (confirmed against real hardware)
 
-Unlike the movement commands, the exact structure of the decoded LIDAR payload has **not yet been confirmed against the real robot** in this codebase — it comes from tracing the driver library's source rather than a live test. This is a great teaching moment: run step 3a first, look at the printed keys, and treat that as the ground truth rather than any assumption in this tutorial. If the structure surprises you, that's the normal experience of working with someone else's undocumented library.
+Each frame is a dict with five keys: `point_count`, `face_count`, `positions`, `uvs`, `indices`. `positions`/`uvs`/`indices` are **flat mesh vertex-buffer arrays** — the same shape of data you'd feed to a 3D graphics renderer (position, texture coordinate, and triangle-index arrays), not a plain list of `(x, y, z)` points. That's consistent with the decoder's name, `libvoxel` — it's building a triangulated surface mesh out of the voxel grid, not just returning raw points.
+
+To turn `positions` into individual 3D points:
+
+```python
+positions = frame["positions"].reshape(-1, 3)   # each row is one (x, y, z)
+print(positions.shape)
+print(positions[:5])
+```
+
+**Important:** `positions` is `dtype=uint8` with values roughly in the 0–255 range — these are **integer voxel-grid indices**, not meters. To get real-world distances, multiply by the actual voxel size used during decoding (see `--voxel-size` in [lidar_tracker.py](go2_control/lidar_tracker.py), default `0.1` meters per voxel) and account for whatever origin offset the grid uses. Treating these numbers as metric coordinates directly will give you wrong distances.
+
+**Exercise for students:** load a recorded frame, reshape `positions`, and plot a 2D top-down scatter of `x` vs `y` (e.g. with `matplotlib`). Compare the shape you see to the room you recorded in.
 
 **Exercise for students:** after running 3a once and seeing the real field names, write a small script that loads a recorded `.pkl` frame and prints summary statistics (e.g. number of points, or min/max coordinate ranges) using those actual field names.
 
