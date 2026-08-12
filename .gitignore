@@ -216,3 +216,16 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Build artifacts — rebuild these, don't commit them
+dist_bundle/
+
+# Runtime output from testing/using the tools (not source)
+camera_snapshots/
+lidar_recording/
+object_track_frames/
+dataset/
+*.csv
+trained_classifier.pt
+follow_policy.json
+runs/
