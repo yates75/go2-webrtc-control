@@ -1,0 +1,35 @@
+# Build artifacts -- rebuild these, don't commit them
+dist_bundle/
+build/
+*.egg-info/
+__pycache__/
+*.pyc
+
+# Local environment
+.venv/
+
+# Runtime output from using/testing the tools (not source)
+camera_snapshots/
+lidar_recording/
+object_track_frames/
+dataset/
+*.csv
+trained_classifier.pt
+follow_policy.json
+runs/
+
+# OS cruft
+.DS_Store
+
+# Downloadable model weights -- fetched automatically on first use, not source
+yolov8n.pt
+
+# Personal/local tool state, not shared project config
+.qodo/
+.claude/settings.local.json
+
+# Scratch notes, not project documentation
+scratch_*
+
+# Stray unreferenced file, not part of the package
+go2_control/Screenshot*.png

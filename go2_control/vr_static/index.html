@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quest Go2 VR Control</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <main class="app">
+    <section class="panel">
+      <h1>Quest Go2 Bridge</h1>
+      <p class="hint">
+        Connect control + camera first, then tap Enter VR in Quest Browser.
+      </p>
+
+      <div class="row">
+        <button id="btnConnect">Connect Control</button>
+        <button id="btnDisconnect" class="secondary">Disconnect</button>
+      </div>
+
+      <div class="row">
+        <button id="btnVideo">Connect Camera</button>
+        <button id="btnVR" class="secondary">Enter VR</button>
+      </div>
+
+      <div class="actions">
+        <button data-action="stand_up">Stand</button>
+        <button data-action="sit">Sit</button>
+        <button data-action="stop" class="danger">Stop</button>
+        <button data-action="hello">Hello</button>
+        <button data-action="content">Wag</button>
+      </div>
+
+      <div class="telemetry">
+        <div><strong>Status:</strong> <span id="status">idle</span></div>
+        <div><strong>Control:</strong> <span id="controlState">disconnected</span></div>
+        <div><strong>Video:</strong> <span id="videoState">disconnected</span></div>
+        <div><strong>Twist:</strong> <span id="twist">vx=0.00, wz=0.00</span></div>
+      </div>
+
+      <p class="hint">
+        Thumbstick mapping: left stick Y = forward/back, right stick X = turn.
+      </p>
+    </section>
+
+    <section class="viewer">
+      <video id="robotVideo" autoplay playsinline muted></video>
+      <div class="overlay">Go2 Camera Stream</div>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>

@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Go2 Block IDE</title>
+  <style>
+    :root {
+      --bg-ink: #0c1b1f;
+      --bg-deep: #132a30;
+      --panel: #f6f2e8;
+      --accent: #f28f3b;
+      --accent-2: #2a9d8f;
+      --text: #1f2933;
+      --muted: #5c6670;
+      --code-bg: #1f2933;
+      --code-text: #f6f2e8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 18% 18%, rgba(242, 143, 59, 0.35) 0%, rgba(242, 143, 59, 0.0) 45%),
+        radial-gradient(circle at 78% 22%, rgba(42, 157, 143, 0.30) 0%, rgba(42, 157, 143, 0.0) 43%),
+        linear-gradient(140deg, var(--bg-ink), var(--bg-deep));
+      padding: 20px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 1500px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--panel);
+      border-radius: 18px;
+      box-shadow: 0 20px 45px rgba(8, 22, 25, 0.35);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header.hero {
+      grid-column: 1 / -1;
+      color: #f6f2e8;
+      padding: 4px 6px 12px;
+    }
+
+    header.hero h1 {
+      margin: 0 0 4px;
+      font-size: 1.7rem;
+    }
+
+    header.hero p {
+      margin: 0;
+      color: #cfe3e0;
+      font-size: 0.95rem;
+      max-width: 70ch;
+    }
+
+    .workspace-head, .code-head {
+      padding: 14px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #d9cfbe;
+      background: linear-gradient(180deg, #fff7e7 0%, #f8f0df 100%);
+    }
+
+    .workspace-head h2, .code-head h2 {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+
+    #blocklyDiv {
+      flex: 1;
+      min-height: 640px;
+      width: 100%;
+    }
+
+    .code-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 640px;
+    }
+
+    #codeOutput {
+      flex: 1;
+      margin: 0;
+      padding: 16px 18px;
+      background: var(--code-bg);
+      color: var(--code-text);
+      font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      overflow: auto;
+      white-space: pre;
+    }
+
+    .code-actions {
+      padding: 12px 16px;
+      display: flex;
+      gap: 10px;
+      background: #fff7e7;
+      border-top: 1px solid #d9cfbe;
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 120ms ease, filter 120ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(0.97);
+    }
+
+    .btn-save {
+      background: var(--accent-2);
+      color: #fff;
+    }
+
+    .btn-copy {
+      background: #264653;
+      color: #fff;
+    }
+
+    .btn-clear {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .status {
+      align-self: center;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .note {
+      padding: 12px 18px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      border-top: 1px solid #ece5d8;
+      background: #fffdf7;
+    }
+
+    @media (max-width: 1100px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+      #blocklyDiv, .code-body {
+        min-height: 480px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="hero">
+      <h1>Go2 Block IDE</h1>
+      <p>
+        Drag blocks together to build a robot program. The Python panel on the right updates live as you build —
+        this is the real code that will run. Nothing here connects to the robot: use <strong>Save .py</strong> to
+        download the script, then run it from a terminal exactly like the rest of this project's tutorials.
+      </p>
+    </header>
+
+    <section class="card">
+      <div class="workspace-head">
+        <h2>Blocks</h2>
+        <span class="status">Everything inside "connect" / "disconnect" runs in order, top to bottom.</span>
+      </div>
+      <div id="blocklyDiv"></div>
+    </section>
+
+    <section class="card">
+      <div class="code-head">
+        <h2>Generated Python</h2>
+      </div>
+      <div class="code-body">
+        <pre id="codeOutput"></pre>
+        <div class="code-actions">
+          <button class="btn-save" id="saveBtn">Save .py</button>
+          <button class="btn-copy" id="copyBtn">Copy code</button>
+          <button class="btn-clear" id="clearBtn">Clear workspace</button>
+          <span class="status" id="statusMsg"></span>
+        </div>
+      </div>
+      <div class="note">
+        Speed and turn fields are capped in the blocks themselves to match the limits already enforced in
+        <code>client.py</code> (walk speed ≤ 0.3 m/s, turn ≤ 1.0 rps) — but always read the generated code before
+        running it on real hardware.
+      </div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/blockly@10/blockly_compressed.js"></script>
+  <script src="https://unpkg.com/blockly@10/blocks_compressed.js"></script>
+  <script src="https://unpkg.com/blockly@10/python_compressed.js"></script>
+  <script src="https://unpkg.com/blockly@10/msg/en.js"></script>
+  <script src="./block_ide.js"></script>
+</body>
+</html>

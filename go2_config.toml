@@ -1,0 +1,4 @@
+[go2]
+robot_ip = "192.168.12.1"
+wifi_name = "UNITREE_GO2"
+default_walk_speed_mps = 0.1

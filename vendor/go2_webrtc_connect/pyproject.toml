@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "go2-webrtc-connect"
+version = "0.2.1.post1"
+description = "Connect to the Unitree Go2 with WebRTC (patched: firmware >=1.1.8 AES-GCM con_notify handshake)"
+requires-python = ">=3.8"
+dependencies = [
+    "aiortc>=1.9.0",
+    "pycryptodome",
+    "requests",
+    "wasmtime",
+    "flask-socketio",
+    "lz4",
+    "numpy",
+    "packaging",
+    "cryptography",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["go2_webrtc_driver*"]
+
+[tool.setuptools.package-data]
+"go2_webrtc_driver.lidar" = ["*.wasm"]
