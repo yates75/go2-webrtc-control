@@ -44,7 +44,7 @@ except ModuleNotFoundError:
     )
 
 from go2_control.camera_view import stream_camera
-from go2_control.object_tracker import _best_detection, _load_model
+from go2_control.object_tracker import _load_model, _tracked_detections
 
 FORWARD_STEP = 0.1
 TURN_STEP = 0.3
@@ -103,7 +103,8 @@ async def record(
             last_detect = now
 
             img = frame.to_ndarray(format="bgr24")
-            _, best = await asyncio.to_thread(_best_detection, model, img, target_class)
+            _, matches = await asyncio.to_thread(_tracked_detections, model, img, target_class)
+            best = max(matches, key=lambda m: m["confidence"]) if matches else None
             if best is None:
                 return
 

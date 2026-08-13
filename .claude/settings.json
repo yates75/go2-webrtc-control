@@ -17,7 +17,8 @@
       "Bash(.venv/bin/python -c \"from go2_control.client import Go2ControlClient; c=Go2ControlClient\\(\\); print\\('OK', [m for m in dir\\(c\\) if not m.startswith\\('_'\\)]\\)\")",
       "Bash(.venv/bin/python -m go2_control.telemetry --help)",
       "Bash(.venv/bin/python -m go2_control.audio --help)",
-      "Bash(.venv/bin/python -m go2_control.remote_input --help)"
+      "Bash(.venv/bin/python -m go2_control.remote_input --help)",
+      "Bash(git restore *)"
     ]
   }
 }

@@ -25,6 +25,34 @@ What is still genuinely out of reach for this project:
   was found for this one, so `start_slam_mapping()` still raises
   `NotImplementedError`. `watch_slam_topics()` remains fully safe to run
   (read-only), in case the robot's onboard SLAM is already active.
+
+  Checked and ruled out as sources (2026-08-14): the vendored driver
+  (no `examples/` dir at all), upstream `legion1581/unitree_webrtc_connect`
+  (public search turned up no example calling this topic), and general
+  web search for the payload shape. Unitree's own SLAM & Navigation
+  Services page (support.unitree.com/home/en/developer/SLAM and
+  Navigation_service) is JS-rendered and couldn't be read via a plain
+  fetch -- worth opening in an actual browser next time.
+
+  More importantly, secondary sources (Weston Robot's Go2 SLAM docs)
+  describe Unitree's own onboard SLAM stack as needing an **Expansion
+  Dock + external LiDAR (Livox MID-360 or Hesai XT16)**, started by
+  running `unitree_slam` + a `keyDemo` keyboard interface directly on
+  the robot's companion PC over SSH -- not obviously a WebRTC
+  data-channel command at all. That casts real doubt on whether
+  `rt/qt_command` is even the right mechanism, and whether a bare Go2
+  Pro (no expansion dock / external LiDAR, which this project has
+  never targeted) can run onboard mapping regardless of payload.
+
+  Path forward if picked back up: (1) first confirm the physical robot
+  actually has the expansion dock + external LiDAR -- if not, this may
+  be a hardware gap, not a missing-payload one; (2) if it does, the
+  reliable way to get a *sourced* (not guessed) payload is to MITM the
+  official Unitree app's traffic (mitmproxy/Wireshark) while tapping
+  "Create Map" in-app, the same way the VUI/obstacle-avoidance api_ids
+  above were originally obtained; (3) periodically recheck
+  `legion1581/unitree_webrtc_connect` for a new SLAM example, since
+  that's the fork this project already trusts for sourced payloads.
 """
 
 from __future__ import annotations
@@ -157,7 +185,9 @@ async def start_slam_mapping(conn: Go2WebRTCConnection) -> None:
 
     raise NotImplementedError(
         f"No sourced payload format for {RTC_TOPIC['SLAM_QT_COMMAND']} was found. "
-        "Find a verified command shape (not a guess) before sending a real request."
+        "Find a verified command shape (not a guess) before sending a real request. "
+        "See the module docstring's 'Path forward' note -- this may also be a hardware "
+        "gap (expansion dock + external LiDAR), not just a missing payload."
     )
 
 

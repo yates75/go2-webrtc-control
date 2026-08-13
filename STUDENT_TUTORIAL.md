@@ -6,6 +6,39 @@ A hands-on tutorial for driving the Unitree Go2 Pro, viewing its camera feed, an
 
 ---
 
+## For teachers: mapping to the NSW Stage 5/6 Computing syllabuses
+
+Every part below ends with a **Classroom activities** block, tagged against real focus areas/modules from the current NESA syllabuses, so activities can be lifted straight into a program or assessment without re-deriving the links yourself.
+
+| Tag | Course | Year | Focus area / module |
+|---|---|---|---|
+| `CT-Mech` | Computing Technology 7–10 | Stage 5 | Building mechatronic and automated systems |
+| `CT-Data` | Computing Technology 7–10 | Stage 5 | Analysing data |
+| `CT-UX` | Computing Technology 7–10 | Stage 5 | Designing for user experience |
+| `CT-Net` | Computing Technology 7–10 | Stage 5 | Modelling networks and social connections |
+| `CT-Apps` | Computing Technology 7–10 | Stage 5 | Developing apps and web software |
+| `CT-Games` | Computing Technology 7–10 | Stage 5 | Creating games and simulations |
+| `SE-Fund` | Software Engineering 11–12 | Year 11 | Programming fundamentals |
+| `SE-OOP` | Software Engineering 11–12 | Year 11 | The object-oriented paradigm |
+| `SE-Mech` | Software Engineering 11–12 | Year 11 | Programming mechatronics |
+| `SE-Secure` | Software Engineering 11–12 | Year 12 | Secure software architecture |
+| `SE-Web` | Software Engineering 11–12 | Year 12 | Programming for the web |
+| `SE-Auto` | Software Engineering 11–12 | Year 12 | Software automation |
+| `SE-Proj` | Software Engineering 11–12 | Year 12 | Software Engineering project |
+| `EC-Media` | Enterprise Computing 11–12 | Year 11 | Interactive media and the user experience |
+| `EC-Net` | Enterprise Computing 11–12 | Year 11 | Networking systems and social computing |
+| `EC-Cyber` | Enterprise Computing 11–12 | Year 11 | Principles of cybersecurity |
+| `EC-DataSci` | Enterprise Computing 11–12 | Year 12 | Data science |
+| `EC-DataViz` | Enterprise Computing 11–12 | Year 12 | Data visualisation |
+| `EC-Intel` | Enterprise Computing 11–12 | Year 12 | Intelligent systems |
+| `EC-Proj` | Enterprise Computing 11–12 | Year 12 | Enterprise project |
+
+This project's architecture happens to line up well with the mechatronics/automation throughline shared by all three courses: a physical machine (mechatronics) driven by software commands (programming), watched over by sensors and safety layers (automation, systems thinking), and increasingly handed autonomy through models trained on real data (intelligent systems) — with every step of that progression staged behind explicit, discussed safety caps. That progression is itself a live case study for `SE-Secure`/`EC-Cyber`'s emphasis on designing safety and trust boundaries into a system from the start, rather than bolting them on afterward.
+
+A **capstone project ideas** section sized for each course's end-of-year project (`SE-Proj`, `EC-Proj`, or a Stage 5 combined-focus-area project) is at the end of this document, after Part 17.
+
+---
+
 ## Part 0 — One-time setup
 
 1. Unzip the folder you were given, and open a terminal inside it.
@@ -118,9 +151,25 @@ python -m go2_control.cli routine short-walk
 python -m go2_control.cli routine turn-left
 ```
 
-Full list: `greet`, `calm-start`, `short-walk`, `reset`, `turn-left`, `turn-right`, `back-up-slowly`.
+Full list: `greet`, `calm-start`, `short-walk`, `reset`, `turn-left`, `turn-right`, `back-up-slowly`, `handoff`.
+
+**`reset` vs `handoff`:** `reset` only clears *motion* (stops, then stands neutrally) — it doesn't touch other sticky settings a script might have changed. `handoff` is the one to run before giving the robot to a student to drive with the official app or physical remote:
+
+```bash
+python -m go2_control.cli routine handoff
+```
+
+It turns off manual pose mode, re-enables obstacle avoidance, resets body height, foot-raise height, and speed level to their defaults, then stands neutrally — and because the CLI always disconnects when it finishes, running this from a terminal also releases your script's connection, which is the other half of actually handing over control. **What it deliberately doesn't touch:** gait selection (`switch_gait`, Part 4) — there's no confirmed default gait ID for this firmware to switch back to, so if you changed it, either remember what you set or power-cycle the robot if you're not sure.
 
 **Exercise for students:** open [cli.py](go2_control/cli.py) and find `run_routine()`. Add a new routine name (e.g. `"figure-eight"`) that chains a left turn and a right turn together, using only the safe methods above.
+
+### Classroom activities (Stage 5/6 Computing)
+
+- **`CT-Mech`** Trace `MAX_SAFE_WALK_SPEED_MPS` from where it's defined in `client.py` through to where it's enforced, and write a short paragraph on why a hard-coded software limit counts as a genuine safety component of a mechatronic system, not just a suggestion.
+- **`SE-Fund`** Before touching code, write the `walk_for()` behaviour ("walk at this speed, then stop after this many seconds") as pseudocode or a flowchart. Compare your version to what `client.py` actually does — where did you under- or over-specify the algorithm?
+- **`SE-Mech`** The browser simulator (1c) only ever shows *intended* motion. Write a short prediction of at least two reasons the robot's real executed path might differ from the simulation (e.g. actuator response time, surface grip, firmware timing) — you'll get to check this prediction for real in Part 6.
+- **`EC-Net`** Diagram the connect → send commands → disconnect pattern as a sequence diagram (laptop, WiFi, robot). Annotate what happens to the robot if the WiFi connection drops in the middle of a `walk_for()` call — a first look at reliability in networked control systems.
+- **`SE-Proj`/`EC-Proj`** Before implementing the `"figure-eight"` routine exercise above, write two or three acceptance criteria for it first (e.g. "ends facing the same direction it started," "never exceeds the speed caps"). Implement against your own criteria, then check them off.
 
 ---
 
@@ -155,6 +204,13 @@ conn.video.switchVideoChannel(True)          # THEN switch the feed on
 The Go2 only starts sending video frames once the channel is switched on — if you switch it on before registering your callback, the first frame gets consumed internally and your callback never fires. This order matters.
 
 **Exercise for students:** modify `camera_view.py` so it saves a snapshot only when a keyboard key is pressed, instead of on a fixed timer (hint: combine with `pynput`, already used in [pynput_teleop.py](go2_control/pynput_teleop.py)).
+
+### Classroom activities (Stage 5/6 Computing)
+
+- **`CT-UX`** Sketch or wireframe an on-screen status flow for a non-technical operator using the snapshot tool: what should appear when a photo is taken, when the connection drops, when the folder fills up? Redesign 2a's console output to match your wireframe.
+- **`EC-Media`** Compare the timer-driven capture in 2a against the keyboard-triggered capture from the exercise above as two different interactive-media capture models. Write a short recommendation on when each is the right choice (unattended monitoring vs. a human deciding the moment).
+- **`SE-Fund`** Explain, in your own words, why `add_track_callback` must be registered before `switchVideoChannel(True)`. Turn it into a general rule about event-driven programming (register handlers before triggering the event source), and find or invent one other example of the same class of bug.
+- **`CT-Mech`** The camera is one sensor this robot exposes. As you work through the rest of this tutorial, keep a running list of every other sensor (LIDAR, telemetry, remote input, audio) and classify each as "read-only monitoring," "used to trigger automation," or both.
 
 ---
 
@@ -207,6 +263,25 @@ print(positions[:5])
 
 **Exercise for students:** after running 3a once and seeing the real field names, write a small script that loads a recorded `.pkl` frame and prints summary statistics (e.g. number of points, or min/max coordinate ranges) using those actual field names.
 
+### 3d. Visualize a recorded frame
+
+[visualize_lidar.py](visualize_lidar.py) (repo root, not part of the `go2_control` package) does the plotting from the two exercises above for you — it loads a `.pkl` frame from 3b, reshapes and scales `positions` by `--voxel-size` the same way 3c describes, and plots it. It needs `matplotlib` and `numpy`, which aren't part of this project's normal install (`pip install matplotlib numpy` if you don't already have them) — run this on normal WiFi, before switching to the robot's hotspot.
+
+```bash
+python visualize_lidar.py lidar_recording/frame_0000.pkl          # 3D scatter, opens a window
+python visualize_lidar.py lidar_recording/frame_0000.pkl --2d     # top-down 2D view instead
+python visualize_lidar.py lidar_recording/frame_0000.pkl --out frame.png   # save a PNG instead of opening a window
+```
+
+It prints the point count and the x/y/z extent in meters before plotting, so you can sanity-check the numbers against 3c's voxel-size caveat before trusting the picture.
+
+### Classroom activities (Stage 5/6 Computing)
+
+- **`SE-Mech`/`CT-Mech`** Derive, on paper, the formula for turning a voxel index into a real-world distance given an origin offset. Test it by physically measuring a real distance in the room with a tape measure and comparing it to what your formula predicts from a recorded frame.
+- **`EC-DataViz`** Use `visualize_lidar.py` to compare the 2D and 3D views of the same frame. Write a short note on what information the 2D top-down view discards, and describe a real scenario where that tradeoff would (and wouldn't) be acceptable in a dashboard built for a non-technical audience.
+- **`CT-Data`/`EC-DataSci`** Record several frames and write a script that plots point count across them. Discuss what a sudden drop or spike would suggest about sensor health, and why you'd want a check like this running *before* trusting the sensor for automated decisions later (Part 13, Part 14).
+- **`SE-Secure`/`EC-Cyber`** Reverse-engineering an undocumented sensor payload format (3c) is itself a security-adjacent skill. Discuss, with reference to this exact situation, the difference between reverse-engineering a closed protocol for interoperability/education versus for malicious purposes — and where the line actually sits.
+
 ---
 
 ## Part 4 — More gestures and gait tuning
@@ -234,6 +309,13 @@ await client.pose(True)                   # enable manual pose mode; False to re
 **A bug worth showing the class:** the previous version of `content()` actually sent the `Dance1` command (id 1022) instead of the real `Content` command (id 1020) — the id was copy-pasted wrong. It's a good real-world example of why you should always trace a "magic number" ID back to its source (`go2_webrtc_driver/constants.py`'s `SPORT_CMD` dict) instead of trusting a method name.
 
 **Exercise for students:** write a short routine that calls `switch_gait`, waits, calls `walk_for(0.1, duration_s=2.0)`, and compares how the walk feels across two different gait IDs. Discuss why some experiments here (unlike everything above) require you to already know a valid ID for your firmware — where would you look that up safely?
+
+### Classroom activities (Stage 5/6 Computing)
+
+- **`SE-Fund`/`SE-OOP`** Using the `content()` bug as your starting point, find `SPORT_CMD` in `constants.py` and design a small validation function or class that raises a clear error if an unknown or unmapped command ID is used. Discuss why explicit validation matters more in mechatronic command dispatch than in, say, a script that only prints text.
+- **`CT-Mech`** Test `set_body_height` and `set_foot_raise_height` on two different surfaces at school (e.g. carpet vs. tile). Compare how the robot copes, and connect your observations to how real quadruped mechatronics adapts posture and gait to terrain.
+- **`SE-Mech`** On paper, design a state machine for gait transitions: standing → walking → switching gait, including guard conditions like the "wait ~2 seconds after StandUp before Move" rule documented in this project's `CLAUDE.md`. Discuss why a state machine, not a straight-line script, is the right model here.
+- **`SE-Auto`** Chain `switch_gait`, `walk_for`, and (once you've reached Part 5) telemetry logging into a small automated "gait comparison" test harness: run each candidate gait for a fixed distance, log the result, and report which performed best against a metric you define. This is a first hands-on software-automation testing exercise.
 
 ---
 
@@ -269,6 +351,13 @@ asyncio.run(main())
 
 **Exercise for students:** graph battery percentage over a 5-minute walking session using `matplotlib`, sampling `stream_state` in a loop.
 
+### Classroom activities (Stage 5/6 Computing)
+
+- **`EC-DataSci`/`EC-DataViz`** Extend the battery-graphing exercise above into a small multi-panel dashboard that also plots velocity and roll/pitch/yaw over the same session, so battery drain can be visually correlated with how hard the robot was working.
+- **`CT-Data`** Define what would count as an "outlier" reading in this stream (e.g. battery jumping from 80% to 20% in one sample) and write a simple sanity-check function that flags — but doesn't act on — suspicious readings.
+- **`SE-Auto`** Write a first hand-rolled automation rule: read the battery level and refuse to run any further `walk_for()` calls below a threshold you choose, printing a warning instead. You'll meet a "real," more thorough version of this idea as `safety_watchdog.py` in Part 17 — compare your version to it once you get there.
+- **`EC-Cyber`/`SE-Secure`** Telemetry here is read-only and gated only by the initial connection handshake, not by any further authentication. Discuss, in principle, what could go wrong if any device on the robot's network could silently read live position/orientation data — a genuine privacy/access-control question for a networked physical system.
+
 ---
 
 ## Part 6 — Odometry / path logging
@@ -280,6 +369,12 @@ python -m go2_control.telemetry odometry --count 50 --out-csv odometry_log.csv
 ```
 
 Pair this with Part 1's movement code: run a `walk_for()` sequence in one script while `log_odometry` runs in another, then plot the CSV afterward and compare the **actual** path to what the browser simulator predicted for the same routine. That comparison — intended motion vs. measured motion — is a genuinely open research-style question for students, since the simulator only ever shows intent.
+
+### Classroom activities (Stage 5/6 Computing)
+
+- **`SE-Proj`/`EC-Proj`** Turn the intended-vs-measured comparison above into a small scientific-method exercise: form a specific hypothesis first (e.g. "the robot turns wider than commanded on carpet than on tile"), design a measurement to test it, run it, and report your findings — including whether the data supported your hypothesis.
+- **`EC-DataViz`** Record odometry under two different gait settings from Part 4 and overlay both paths as two lines on the same plot, so the effect of the gait choice on real-world drift is visible directly.
+- **`CT-Mech`** Discuss why odometry (dead-reckoning from the robot's own reported pose) drifts over time, and how that differs in kind from LIDAR-based localisation (Part 3) — a genuine open problem in real mobile robotics, not something specific to this project.
 
 ---
 
@@ -313,6 +408,11 @@ asyncio.run(main())
 
 **Exercise for students:** build a tiny "sound board" — a keyboard-driven script (reuse the `pynput` pattern from teleop) that plays a different sound on each key press.
 
+### Classroom activities (Stage 5/6 Computing)
+
+- **`CT-UX`/`EC-Media`** Extend the soundboard exercise above by designing (and justifying, in a sentence or two each) a mapping of specific sounds to specific robot states — e.g. a "low battery" sound, a "target lost" sound — that could later be wired into real automation in Part 9, 14, or 17.
+- **`SE-Auto`** Connect Part 5's telemetry to Part 7's audio: trigger a sound automatically the moment a telemetry condition is met (e.g. low battery), rather than from a key press. This is a minimal but complete event-driven automation example — sense, decide, act.
+
 ---
 
 ## Part 8 — Reading the physical remote controller
@@ -324,6 +424,12 @@ python -m go2_control.remote_input --count 30
 ```
 
 **Exercise for students:** have one student drive the robot with the physical remote while another runs this script and logs the raw values to a file — then write a small program that guesses which button/axis corresponds to "walk forward" purely from the logged data, without being told in advance.
+
+### Classroom activities (Stage 5/6 Computing)
+
+- **`CT-Net`** Diagram the three-way data flow between the physical remote, the robot, and your laptop running `remote_input.py`. Label which device is the "controller" and which is the "observer," and discuss whether more than one controller could conflict — a preview of Part 17's open question about simultaneous clients.
+- **`EC-DataSci`** The button/axis-guessing exercise above is essentially hand-done supervised learning. Formalise your guess as an explicit rule (e.g. "if axis_2 > 0.5 then forward") and test whether it still holds against a second, independently logged recording.
+- **`SE-Fund`** Write a handful of assertion-style checks against a saved log file (e.g. "when button X is pressed, field Y should be true within one message") — practice turning an observed pattern in real data into an explicit, testable specification.
 
 ---
 
@@ -361,6 +467,13 @@ from go2_control.experimental import watch_slam_topics
 await watch_slam_topics(conn)   # inside the same connect()/disconnect() pattern as above
 ```
 
+### Classroom activities (Stage 5/6 Computing)
+
+- **`SE-Mech`/`CT-Mech`** Extend the status-light exercise above with hysteresis (e.g. don't switch from green to yellow until below 48%, and back to green only above 52%) so the light doesn't flicker right at the boundary — a real embedded-systems design problem, not just a bigger if/else chain.
+- **`SE-Secure`/`EC-Cyber`** This module only implements command IDs "sourced from a real, working example," and explicitly refuses to guess `start_slam_mapping()`'s payload. Discuss why that discipline matters specifically because commands here reach real, physical hardware — connect it to responsible reverse-engineering practice and safety-critical systems design.
+- **`SE-Auto`** Write a small automated "pre-flight check": before any script you write calls `walk_for()`, have it first confirm obstacle avoidance is enabled (using `get_obstacle_avoidance()`), enabling it automatically if it isn't.
+- **`EC-Proj`** Write a one-page design document proposing a new "status" feature that combines LED, volume, and brightness for a specific real scenario (e.g. a warehouse robot signalling "busy," "idle," or "fault") — practice specifying a feature in writing before any code exists.
+
 ---
 
 ## Part 10 — Why "EDU-level" low-level joint control isn't on this list
@@ -375,6 +488,12 @@ A natural question once you've seen everything above: can this project reach the
 So this isn't a missing feature this project could add with more code — it would require different hardware wiring (Ethernet, not the WiFi hotspot everything else here uses) and an entirely different SDK. It's also meaningfully more dangerous: low-level commands bypass the balance controller, so a bad `kp`/`kd` gain can make the robot collapse or jerk unexpectedly — everything built in this project deliberately stays on the sport API precisely so that safety net stays in place.
 
 **Discussion question for the class:** every capability in Parts 1–9 works because someone reverse-engineered the phone app's WebRTC traffic. Low-level control was deliberately *not* included in that reverse-engineered set. Why might Unitree's app — and by extension this whole ecosystem of community tools — never need to expose that path, even though the official EDU SDK has it?
+
+### Classroom activities (Stage 5/6 Computing)
+
+- **`SE-Secure`** Research why hard real-time control loops (500Hz–1kHz) can't tolerate the latency and jitter of a WebRTC-over-WiFi transport, and write a short explanation connecting real-time constraints to network architecture choices — a genuine systems-engineering topic, not just a Go2-specific fact.
+- **`EC-Net`** Build a comparison table of wired Ethernet+DDS versus WebRTC-over-WiFi as two different networking architectures for control systems, covering latency, reliability, and security tradeoffs for each.
+- **`CT-Mech`** Research what "low-level joint control" (position/velocity/torque, `kp`/`kd` gains) means physically in a legged robot, and explain in plain language what can go wrong if a bad gain value is sent — connecting mechatronics theory (PID/impedance control) to the software safety argument already made in the text above.
 
 ---
 
@@ -409,6 +528,12 @@ Open `http://localhost:8000/block_ide.html`.
 Recreate one of the CLI preset routines from Part 1 (e.g. `greet`: balance stand → wait → wave hello → wait → content → stop) purely by dragging blocks, save it, and run it. Then open the saved `.py` file in a text editor and compare it, line by line, to `run_routine()` in [cli.py](go2_control/cli.py) — same logic, two different ways of writing it.
 
 **A caveat worth sharing with the class:** the block editor loads the Blockly library from a CDN (`unpkg.com`), so it needs internet access the first time the page loads in a session, even though the robot connection itself never does.
+
+### Classroom activities (Stage 5/6 Computing)
+
+- **`CT-Apps`/`CT-UX`** Extend the "recreate a preset routine" exercise above by identifying at least three concrete differences in how errors are prevented or possible in each representation (e.g. an invalid speed literally can't be entered in the block editor, but could be typed into raw Python before validation catches it at runtime).
+- **`SE-Fund`** If you already know Python, "translate" one of your own scripts from Parts 1–9 into blocks by hand. Notice that the block IDE is really the same `Go2ControlClient` object/method model wearing a different interface — the underlying program is identical either way.
+- **`EC-Cyber`** Discuss why the block editor needs internet access to load Blockly from a third-party CDN, and what a supply-chain risk of trusting that CDN would look like. Contrast this with why `go2_webrtc_connect` itself is vendored locally in this project rather than pulled live from PyPI on every install (see `CLAUDE.md`) — a real, contrasting design decision within the same codebase.
 
 ---
 
@@ -455,6 +580,13 @@ This tool answers the *detection* half of that question directly — `person`, `
 
 **Testing note:** verified end-to-end against the robot's real camera feed, including the live `--live`/`--all-classes` preview with persistent IDs — both the CSV-logging and live-window modes produced correct detections, positions, and stable per-object IDs during a real session. The tracker needs one extra package the first time you use `--live` or `--all-classes`: `pip install lap` (this is included automatically if you installed the `tracking` extra from `pyproject.toml`). If you're on the robot's WiFi (no internet) the first time you try it, that install will fail — run it once on your normal school/home WiFi first so it's cached locally.
 
+### Classroom activities (Stage 5/6 Computing)
+
+- **`EC-Intel`/`EC-DataSci`** Turn the confidence-comparison exercise above into a proper mini-experiment writeup: state a hypothesis, describe your method (which objects, how many trials each), present a results table, and write a conclusion — this practices the evaluation-of-AI-system-performance content central to the Intelligent systems module.
+- **`SE-Auto`** The CSV logs `found=False` rows explicitly rather than skipping them. Explain, in writing, why that choice matters for any downstream automated decision-making that consumes this log (e.g. distinguishing "nothing there" from "the logger crashed").
+- **`CT-Data`** Using just Python/`csv` (or `pandas` if available), compute summary statistics from `object_track.csv`: detection rate (% of rows with `found=True`), average confidence, and the longest gap between successful detections.
+- **`EC-Cyber`** A camera on a network-connected robot streaming to any client that can reach it raises real privacy questions. Discuss what data-governance and consent considerations would apply if a robot like this were deployed somewhere public — a genuine Enterprise Computing ethics/legal topic, grounded in a system you've actually run.
+
 ---
 
 ## Part 13 — LIDAR-based object tracking
@@ -476,6 +608,11 @@ This is coarser than the camera version — it can't tell *what* the object is, 
 
 **Exercise for students:** run both the camera tracker (Part 12) and this LIDAR tracker on the same moving object at the same time, then plot both trajectories together. Where do they agree? Where do they disagree, and why might that be (field of view, occlusion, voxel resolution)?
 
+### Classroom activities (Stage 5/6 Computing)
+
+- **`SE-Mech`** Before reading the implementation, describe `_voxelize` and `_largest_cluster` in plain English or as a flowchart, based only on the two-step explanation above. Then read the real code and compare — where did your description match, and where was the real algorithm more subtle?
+- **`EC-Intel`** Compare this part's clustering approach (needs no training data, can't name what it found) against Part 12's camera tracker (needs a trained model, can name the class) as two different "intelligent systems" strategies. Write a short comparison of when you'd choose each in a real deployment.
+
 ---
 
 ## Part 14 — Actively following an object
@@ -489,11 +626,19 @@ python -m go2_control.follow --target person --max-seconds 20
 It uses a simple proportional ("P") controller: the further off-center the object is, the harder the robot turns toward it; it only walks forward when the object is both roughly centered *and* not already close (using the bounding box's width as a rough distance proxy). Built-in safety layers, stacked:
 
 - Every command still goes through `Go2ControlClient.move()`, so the 0.3 m/s / 1.0 rps caps from Part 1 still apply — a bad `--forward-speed` flag is rejected immediately at startup, not mid-run.
+- Detections below `--min-confidence` (default 0.6) are ignored entirely, treated exactly the same as not seeing the object at all — the robot won't chase a low-confidence guess.
 - If the object isn't seen for `--stale-timeout` seconds (default 1.0s), the robot **stops immediately**, every control tick, until it sees the object again.
 - The whole run is capped at `--max-seconds` (default 30) regardless of what happens.
 - Ctrl+C stops it instantly at any time.
 
 **Exercise for students:** try `--max-turn-rps 0.15` vs the default `0.3` and discuss the tradeoff — a gentler turn is safer and smoother but may lose a fast-moving object; a sharper turn tracks better but overshoots more easily. This is the same tuning tradeoff every real visual-servoing system has to make.
+
+### Classroom activities (Stage 5/6 Computing)
+
+- **`SE-Auto`/`SE-Mech`** This is the clearest sense → decide → act automation loop in the whole tutorial. Draw it as a block diagram, and map each of the five safety layers listed above onto the diagram as an explicit checkpoint the loop passes through before a movement command is sent.
+- **`SE-Secure`** Pick one safety layer (e.g. `--stale-timeout`) and write a short risk assessment for what would happen if it were removed: what fails, how likely is it in practice, and how bad is the outcome? This is genuine safety-critical-systems reasoning, applied to code you can actually read.
+- **`CT-Mech`** Extend the turn-rate tuning exercise above into a systematic comparison: test at least three turn rates, three trials each, and pick a winner based on a metric you define in advance (e.g. time to re-center, or how often the object is lost).
+- **`EC-Intel`** Discuss the ethical and safety implications of an autonomous robot deciding to move based on a machine-learning model's output rather than a direct human command. This is a real "intelligent systems" governance question, made concrete because your class actually built and ran the system being discussed.
 
 ---
 
@@ -544,6 +689,12 @@ The pretrained model from Part 12 already knows 80 general-purpose COCO classes 
 
 **Exercise for students:** capture only 10 images per class instead of 40, retrain, and compare the held-out accuracy. Discuss why more (and more *varied*) data usually beats a bigger model for a small classification task like this.
 
+### Classroom activities (Stage 5/6 Computing)
+
+- **`EC-DataSci`/`EC-Intel`** Extend the measured confidence exercise above with a data-leakage thought experiment: what would happen to the reported held-out accuracy if the validation images were literally the same photos as the training images? Explain why that would be misleading, and check `dataset_capture.py` to confirm it actually keeps train/val images separate.
+- **`SE-Auto`** Wire `dataset_capture.py`, `train_classifier.py`, and `recognize.py` into a single script (or Makefile) that runs the whole pipeline unattended from one command — practicing automation of a repeatable ML workflow, a genuine software-automation skill.
+- **`SE-Proj`** Before capturing any images, write a short design note proposing a new object class relevant to your own school context (a specific tool, a mascot, a piece of sports equipment): how many images, what variety of angle/lighting/background, and why. Capture against your own plan and see how well it holds up.
+
 ---
 
 ## Part 16 — Training a "follow" behavior from your own demonstrations
@@ -582,6 +733,88 @@ All the same safety layers from Part 14 still apply — critically, **the traine
 
 **Exercise for students:** run the hand-coded controller (Part 14) and the trained policy (this part) back to back on the same object and compare how each one behaves. Then re-record demonstration data where you *deliberately* label inconsistently (sometimes turn left when the object's on the right, etc.) and retrain — watch the held-out error get worse, and discuss why: this is what "garbage in, garbage out" looks like with real numbers attached.
 
+### Classroom activities (Stage 5/6 Computing)
+
+- **`EC-Intel`** Name the ML paradigm used here explicitly (behaviour cloning / imitation learning) and build a short compare/contrast table across all three ML techniques you've now met: supervised classification (Part 15), unsupervised clustering (Part 13), and imitation learning (this part) — what data each needs, and what each is and isn't good for.
+- **`SE-Secure`** The trained policy's output is always clipped to the same safety caps as the hand-coded controller — a textbook defence-in-depth pattern (never trust a model's output at full authority). Find at least one other place in this tutorial where the same "never trust it outright, clip or gate it" pattern appears (e.g. the speed caps in Part 1, or the `--min-confidence` gate in Part 14), and explain why it recurs.
+- **`EC-DataSci`** Before training, plot or tabulate how consistent your own demonstration labels are for similar inputs (e.g. do you always label "object slightly right" as "turn right"?). Use this as a data-quality check to predict, before training, whether your policy will generalize well.
+
+---
+
+## Part 17 — Independent capture and monitoring devices
+
+New modules: [capture_logger.py](go2_control/capture_logger.py), [passive_recorder.py](go2_control/passive_recorder.py), [inference_appliance.py](go2_control/inference_appliance.py), [safety_watchdog.py](go2_control/safety_watchdog.py). These don't add a new robot capability — they reuse the same camera/LIDAR/telemetry/audio access every other script in this tutorial uses. What's different is *where* they run: each is built to run unattended, on a second device, decoupled from whatever else is controlling the robot. Any device that joins the robot's own WiFi hotspot and speaks WebRTC is a legitimate client, the same way the official app is — nothing here needs special permission from Unitree.
+
+### Untethered capture rig
+
+`capture_logger.py` logs camera + LIDAR + telemetry together into one timestamped session folder. Built to run on a battery-powered Raspberry Pi or Jetson riding the Picatinny mount kit rather than a laptop on a leash — it takes a `--duration` in seconds rather than a frame count, and prints one heartbeat line every 10 seconds instead of a line per frame, so it stays readable if you're tailing a log file over SSH.
+
+```bash
+python -m go2_control.capture_logger --duration 300
+```
+
+```bash
+python -m go2_control.capture_logger --duration 600 --out-dir capture_sessions --camera-interval 2.0
+```
+
+### Passive recorder for remote-driven sessions
+
+`passive_recorder.py` never sends a movement command. Run it on a laptop while a second person drives the robot with its *physical* remote — which drives reliably, unlike this project's own `Move` command (Part 1) — and it pairs each saved camera frame with the robot's own telemetry (battery, velocity, roll/pitch/yaw) at that exact moment into one CSV. That gives you a ready-to-train (image → robot state) dataset directly, instead of three separate logs you'd have to align by timestamp afterward.
+
+```bash
+python -m go2_control.passive_recorder --duration 600
+```
+
+### Headless inference appliance
+
+`inference_appliance.py` is Part 12's `object_tracker.py --live` with the on-screen window removed — for a headless device with no display attached, watching continuously as a standing perception station independent of whoever is driving. It needs the same `ultralytics` package as Part 12; `opencv-python` is only required if you use `--save-snapshots`.
+
+```bash
+python -m go2_control.inference_appliance --duration 1800
+```
+
+```bash
+python -m go2_control.inference_appliance --target person --save-snapshots --snapshot-every 60
+```
+
+`--save-snapshots` saves one annotated JPEG every `--snapshot-every` seconds (not every frame), so you can spot-check accuracy later without ever needing a live display.
+
+### Independent safety watchdog
+
+`safety_watchdog.py` is read-only — it watches battery level and tilt (roll/pitch) and never sends a command, so it can run on its own device alongside anything else and keeps watching even if your main control script crashes.
+
+```bash
+python -m go2_control.safety_watchdog
+```
+
+```bash
+python -m go2_control.safety_watchdog --min-battery 20 --max-tilt-deg 35 --audio-alert
+```
+
+It only alerts once per threshold breach, then re-arms once the value recovers, so it won't spam the same warning every message. `--audio-alert` also plays a sound through the robot's own speaker (Part 7) the moment it fires.
+
+**Testing note:** these four scripts were checked statically this session — they compile, every import resolves against the real driver, and a full cross-module audit confirmed no leftover references to renamed functions — but none has been run against the robot yet. Same rule as everywhere else in this project: treat them as unverified until someone actually runs them on hardware.
+
+**Exercise for students:** run `capture_logger.py` on one laptop and `safety_watchdog.py --audio-alert` on a second, at the same time. Every script in this project opens its own connection and disconnects independently (see `CLAUDE.md`), so this is also the fastest way to find out firsthand whether the robot's WebRTC signaling actually supports more than one simultaneous client — an open question nothing in this project has answered yet.
+
+### Classroom activities (Stage 5/6 Computing)
+
+- **`CT-Net`/`EC-Net`** Before running the simultaneous-clients exercise above, research or predict whether WebRTC signaling typically supports more than one client at once, and write down your prediction. Run the exercise, then compare your prediction to what actually happened.
+- **`SE-Auto`/`SE-Proj`** Design (a short written spec, not full code) a fifth independent device not yet built — e.g. an automatic low-battery "return toward dock" trigger. Describe what it senses, what it decides, what it does, and specifically why it should run on its own device rather than inside the main control script (separation of concerns / fault isolation — a real software-automation architecture principle).
+- **`EC-Cyber`** All four of these devices connect to the robot's open hotspot with no authentication beyond WebRTC's own handshake. Research what a minimal access-control layer would look like if a system like this were deployed somewhere less controlled than a classroom, and write a short recommendation.
+
+---
+
+## Capstone project ideas (Stage 5/6 assessment)
+
+Everything above is a guided exercise; the ideas below are open enough to anchor a full assessment task, sized for the project component every one of these courses ends on (a Stage 5 combined-focus-area project, `SE-Proj`, or `EC-Proj`).
+
+1. **Automated patrol with reporting** (`SE-Proj` / `EC-Proj` / `CT-Mech` + `CT-Data`). Combine Part 1 (movement), Part 5 (telemetry), Part 12 (object detection), and Part 17 (independent logging) into a script that walks a short fixed route, logs everything it sees, and produces a short automatically-generated summary report at the end (objects seen, battery used, any safety thresholds crossed). Marking criteria split naturally along: correctness of the control logic, quality/format of the logged data, and how well the report communicates results to a non-technical reader.
+2. **Learned vs. hand-coded behaviour comparison study** (`SE-Mech` / `EC-Intel`). Use Parts 14 and 16 to build both a hand-coded and a trained "follow" controller for the same task, then design and run a fair, repeatable comparison (same object, same lighting, same number of trials) and write it up as a short empirical report — close to genuine ML-systems evaluation methodology.
+3. **Safety-case documentation exercise** (`SE-Secure` / `EC-Cyber`). Working entirely from the existing codebase (no new code required), produce a short "safety case" document: list every safety layer you can find across Parts 1, 9, 14, and 17 (speed caps, blocked acrobatic commands, stale-timeout stop, confidence gate, watchdog thresholds), explain what failure each one prevents, and identify one gap the current project doesn't cover. This doubles as a close-reading exercise in a real, non-trivial codebase.
+4. **Custom object recognition mini-enterprise** (`EC-DataSci` / `EC-Proj`). Pick a genuine "enterprise" framing — e.g. a lost-property recognition tool for the school — and take it through the full Part 15 pipeline (capture → train → evaluate → recognise live), with a written justification of dataset design decisions and a discussion of where the system would fail in production and why.
+5. **New independent device** (`SE-Auto` / `CT-Mech`). Design and build a genuinely new module for Part 17 (e.g. an automatic LED status beacon that reflects battery and tilt from Part 5's telemetry, running as its own decoupled process) — the smallest new piece of automation a student can add without touching movement code at all, making it a safe first "own idea" project.
+
 ---
 
 ## Quick reference — all commands in one place
@@ -595,6 +828,9 @@ ping 192.168.12.1
 python -m go2_control.cli stand-up
 python -m go2_control.cli menu
 python -m go2_control.cli routine greet
+
+# Before handing the robot to a student for the app or physical remote
+python -m go2_control.cli routine handoff
 
 # Camera
 python -m go2_control.camera_view --count 10
@@ -633,6 +869,12 @@ python -m go2_control.recognize --model trained_classifier.pt --count 20
 python -m go2_control.record_demo --target person --count 60
 python -m go2_control.train_follow_policy --data follow_demo.csv --out-policy follow_policy.json
 python -m go2_control.follow --target person --policy follow_policy.json
+
+# Independent capture / monitoring devices (own device, decoupled from the main control script)
+python -m go2_control.capture_logger --duration 300
+python -m go2_control.passive_recorder --duration 600
+python -m go2_control.inference_appliance --duration 1800
+python -m go2_control.safety_watchdog --min-battery 20 --max-tilt-deg 35 --audio-alert
 ```
 
 ## Troubleshooting

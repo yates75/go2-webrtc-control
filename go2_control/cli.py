@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 from .client import Go2ControlClient
 from .config import load_config
+from .experimental import set_obstacle_avoidance
 
 try:
     from go2_webrtc_driver.go2_webrtc_connection import WebRTCConnectionMethod
@@ -41,6 +42,7 @@ MENU_ITEMS = [
     MenuItem("16", "routine: turn-left", "routine:turn-left"),
     MenuItem("17", "routine: turn-right", "routine:turn-right"),
     MenuItem("18", "routine: back-up-slowly", "routine:back-up-slowly"),
+    MenuItem("19", "routine: handoff", "routine:handoff"),
 ]
 
 
@@ -78,6 +80,7 @@ def build_parser() -> argparse.ArgumentParser:
             "turn-left",
             "turn-right",
             "back-up-slowly",
+            "handoff",
         ],
         help="Routine name",
     )
@@ -169,6 +172,27 @@ async def run_routine(client: Go2ControlClient, name: str) -> None:
         await client.stand_up()
         await asyncio.sleep(2.0)
         await client.walk_for(-0.08, duration_s=2.0, interval_s=0.1)
+    elif name == "handoff":
+        await client.stop_move()
+        await asyncio.sleep(0.5)
+        await client.pose(False)
+        await client.set_body_height(0.0)
+        await client.set_foot_raise_height(0.0)
+        await client.speed_level(0)
+        await set_obstacle_avoidance(client.conn, True)
+        await client.balance_stand()
+        await asyncio.sleep(1.0)
+        await client.stop_move()
+        print(
+            "Handoff complete: pose mode off, obstacle avoidance on, body/foot "
+            "height and speed level back to default, standing neutrally.\n"
+            "NOT reset: gait selection -- there's no confirmed default gait ID "
+            "for this firmware to switch back to (see CLAUDE.md). If you changed "
+            "it earlier, note what you set and switch back manually, or power-cycle "
+            "the robot if unsure.\n"
+            "This script disconnects right after this routine finishes -- that's "
+            "what actually releases control for the app or physical remote."
+        )
     else:
         raise ValueError(f"Unknown routine: {name}")
 

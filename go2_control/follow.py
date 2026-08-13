@@ -10,7 +10,9 @@ Uses the same pretrained YOLO detector as object_tracker.py. A simple
 proportional ("P") controller turns the robot toward the object's
 horizontal position in frame, and only walks forward when the object is
 both roughly centered and not already close (based on its bounding-box
-width, as a rough proxy for distance). If the object isn't seen for
+width, as a rough proxy for distance). Detections below --min-confidence
+are ignored entirely, same as if nothing were seen at all -- the robot
+should not chase a low-confidence guess. If the object isn't seen for
 --stale-timeout seconds, the robot stops immediately. The whole run is
 also capped at --max-seconds regardless of what happens.
 
@@ -44,7 +46,7 @@ if __package__ in (None, ""):
 
 from go2_control.camera_view import stream_camera
 from go2_control.client import MAX_SAFE_WALK_SPEED_MPS, Go2ControlClient
-from go2_control.object_tracker import _best_detection, _load_model
+from go2_control.object_tracker import _load_model, _tracked_detections
 
 TURN_GAIN = 2.0  # proportional gain: turn_rps = -TURN_GAIN * horizontal_error, then clipped
 # Sign convention (positive turn_rps = turn left) is taken from cli.py's own
@@ -84,13 +86,15 @@ def _load_policy(policy_path: Path, forward_cap: float, turn_cap: float) -> Poli
     return policy
 
 
-def _print_safety_banner(max_seconds: float, stale_timeout: float) -> None:
+def _print_safety_banner(max_seconds: float, stale_timeout: float, min_confidence: float) -> None:
     print("=" * 70)
     print("ACTIVE FOLLOWING -- the robot will move on its own based on what")
     print("the camera detects. Clear a wide, open space before continuing.")
     print(f"Stops automatically after {max_seconds:.0f}s, or after")
     print(f"{stale_timeout:.1f}s without seeing the target. Ctrl+C stops it")
     print("immediately at any time.")
+    print(f"Detections below {min_confidence:.2f} confidence are ignored,")
+    print("same as if nothing were seen.")
     print("=" * 70)
 
 
@@ -105,6 +109,7 @@ async def follow(
     control_interval: float,
     stale_timeout: float,
     max_seconds: float,
+    min_confidence: float = 0.6,
     policy: Policy | None = None,
 ) -> None:
     """Detect `target_class` and drive toward it until it's lost or time runs out.
@@ -117,8 +122,10 @@ async def follow(
         raise SystemExit(f"forward_speed must be <= {MAX_SAFE_WALK_SPEED_MPS} m/s")
     if max_turn_rps > 1.0:
         raise SystemExit("max_turn_rps must be <= 1.0")
+    if not 0.0 <= min_confidence <= 1.0:
+        raise SystemExit("min_confidence must be between 0.0 and 1.0")
 
-    _print_safety_banner(max_seconds, stale_timeout)
+    _print_safety_banner(max_seconds, stale_timeout, min_confidence)
     print(f"Steering: {'trained policy' if policy else 'hand-coded proportional controller'}")
 
     model = _load_model()
@@ -136,7 +143,9 @@ async def follow(
         # Inference blocks on CPU for tens-to-hundreds of ms; running it in a
         # thread keeps the event loop free so control_loop's stop-move timing
         # stays responsive instead of stalling for the duration of each detection.
-        _, best = await asyncio.to_thread(_best_detection, model, img, target_class)
+        _, matches = await asyncio.to_thread(_tracked_detections, model, img, target_class)
+        confident = [m for m in matches if m["confidence"] >= min_confidence]
+        best = max(confident, key=lambda m: m["confidence"]) if confident else None
         if best is not None:
             latest = _Target(
                 center_x=best["center_x"],
@@ -186,6 +195,7 @@ async def main_async(
     control_interval: float,
     stale_timeout: float,
     max_seconds: float,
+    min_confidence: float,
     policy_path: Path | None,
 ) -> None:
     policy = _load_policy(policy_path, forward_speed, max_turn_rps) if policy_path else None
@@ -204,6 +214,7 @@ async def main_async(
             control_interval,
             stale_timeout,
             max_seconds,
+            min_confidence=min_confidence,
             policy=policy,
         )
     finally:
@@ -223,6 +234,12 @@ def main() -> None:
     parser.add_argument("--stale-timeout", type=float, default=1.0, help="Seconds without a detection before stopping")
     parser.add_argument("--max-seconds", type=float, default=30.0, help="Hard time limit for the whole run")
     parser.add_argument(
+        "--min-confidence",
+        type=float,
+        default=0.6,
+        help="Minimum detection confidence (0-1) to treat as a real sighting; lower-confidence detections are ignored",
+    )
+    parser.add_argument(
         "--policy",
         default=None,
         help="Path to a policy trained with train_follow_policy.py; omit to use the hand-coded controller",
@@ -241,6 +258,7 @@ def main() -> None:
                 args.control_interval,
                 args.stale_timeout,
                 args.max_seconds,
+                args.min_confidence,
                 Path(args.policy) if args.policy else None,
             )
         )
